@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Client {
+  id             String   @id @default(cuid())
+  name           String
+  kvk            String?
+  domain         String   @unique
+  plan           String   @default("legal")
+  status         String   @default("active")
+  encryptionKey  String?
+  createdAt      DateTime @default(now())
+  
+  users          User[]
+  documents      Document[]
+  aiSystems      AiSystem[]
+}
+
+model User {
+  id             String   @id @default(cuid())
+  clientId       String
+  email          String   @unique
+  name           String?
+  passwordHash   String
+  role           String   @default("user")
+  policySigned   Boolean  @default(false)
+  policySignedAt DateTime?
+  createdAt      DateTime @default(now())
+  
+  client         Client   @relation(fields: [clientId], references: [id])
+  documents      Document[]
+}
+
+model AiSystem {
+  id          String   @id @default(cuid())
+  clientId    String
+  name        String
+  model       String
+  useCase     String?
+  riskTier    String   @default("limited")
+  createdAt   DateTime @default(now())
+  
+  client      Client   @relation(fields: [clientId], references: [id])
+}
+
+model Document {
+  id          String   @id @default(cuid())
+  clientId    String
+  type        String
+  version     String   @default("1.0")
+  status      String   @default("pending")
+  signedById  String?
+  signedAt    DateTime?
+  createdAt   DateTime @default(now())
+  
+  client      Client   @relation(fields: [clientId], references: [id])
+  signedBy    User?    @relation(fields: [signedById], references: [id])
+}
