@@ -41,6 +41,7 @@ const allMenuItems = [
   { label: 'Dashboard', to: '/dashboard', icon: '⊞', roles: ['user', 'admin', 'superadmin'] },
   { label: 'AI Chat', to: '/chat', icon: '◎', roles: ['user', 'admin', 'superadmin'] },
   { label: 'Admin', to: '/admin', icon: '⚙', roles: ['admin', 'superadmin'] },
+  { label: 'Audit Logs', to: '/audit', icon: '⊟', roles: ['admin', 'superadmin'] },
   { label: 'TBD', to: '/tbd', icon: '◈', roles: ['superadmin'] },
 ]
 
