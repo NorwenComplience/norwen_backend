@@ -21,6 +21,7 @@ export default defineEventHandler((event) => {
       role: payload.role,
       clientId: payload.clientId,
       mustChangePassword: payload.mustChangePassword ?? false,
+      policySigned: payload.policySigned ?? false,
     }
   } catch (e: any) {
     if (e.statusCode) throw e

@@ -21,6 +21,7 @@ export default defineEventHandler(async (event) => {
     role: user.role,
     clientId: user.clientId,
     mustChangePassword: user.mustChangePassword,
+    policySigned: user.policySigned,
   })
 
   setCookie(event, 'auth_token', token, {
