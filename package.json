@@ -11,10 +11,13 @@
     "seed": "npx tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
+    "@types/pg": "^8.20.0",
     "bcrypt": "^6.0.0",
     "jsonwebtoken": "^9.0.3",
     "nuxt": "^4.4.8",
+    "pg": "^8.22.0",
     "prisma": "^7.8.0",
     "resend": "^6.12.4",
     "vue": "^3.5.35",
