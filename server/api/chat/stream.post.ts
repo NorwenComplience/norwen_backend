@@ -75,6 +75,9 @@ export default defineEventHandler(async (event) => {
         for (const line of lines) {
           try {
             const data = JSON.parse(line)
+            // Ignore thinking field entirely
+            if (data.message?.thinking) continue
+
             const content = data.message?.content
             if (content) {
               thinkBuffer += content
@@ -93,6 +96,8 @@ export default defineEventHandler(async (event) => {
                   inThink = true
                 }
               }
+              // Strip orphaned </think> that Ollama sends when thinking is in separate field
+              visible = visible.replace(/<\/think>/g, '').trimStart()
               if (visible) {
                 fullResponse += visible
                 controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ content: visible })}\n\n`))
