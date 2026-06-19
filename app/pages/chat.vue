@@ -17,7 +17,7 @@
         </div>
       </div>
 
-      <div v-if="streaming" class="message message--assistant">
+      <div v-if="streaming || streamingText" class="message message--assistant">
         <div class="message-bubble">
           <p>{{ streamingText }}<span class="cursor">▌</span></p>
         </div>
@@ -122,7 +122,7 @@ async function send() {
 .chat-wrapper {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 80px);
+  height: calc(100vh - 160px);
 }
 
 .chat-messages {
