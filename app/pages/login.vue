@@ -64,11 +64,16 @@ const error = ref('')
 async function handleLogin() {
   error.value = ''
   loading.value = true
-  await new Promise(r => setTimeout(r, 800))
-  loading.value = false
-  // TODO: replace with real auth call
-  if (form.email !== 'admin@norwen.eu') {
-    error.value = 'Invalid email or password.'
+  try {
+    await $fetch('/api/auth/login', {
+      method: 'POST',
+      body: { email: form.email, password: form.password },
+    })
+    await navigateTo('/dashboard')
+  } catch (e: any) {
+    error.value = e?.data?.message || 'Invalid email or password.'
+  } finally {
+    loading.value = false
   }
 }
 </script>
