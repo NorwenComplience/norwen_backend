@@ -1,18 +1,25 @@
 import { verifyToken } from '../../utils/jwt'
+import { writeAuditLog } from '../../utils/s3'
+import { randomUUID } from 'crypto'
+
+const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434'
 
 export default defineEventHandler(async (event) => {
   const token = getCookie(event, 'auth_token')
   if (!token) throw createError({ statusCode: 401, message: 'Not authenticated' })
 
+  let payload: any
   try {
-    verifyToken(token)
+    payload = verifyToken(token)
   } catch {
     throw createError({ statusCode: 401, message: 'Invalid token' })
   }
 
   const { messages } = await readBody(event)
+  const clientDomain = event.context.clientDomain || 'demo'
+  const userMessage = messages[messages.length - 1]?.content || ''
 
-  const response = await fetch('http://localhost:11434/api/chat', {
+  const response = await fetch(`${OLLAMA_URL}/api/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -32,12 +39,26 @@ export default defineEventHandler(async (event) => {
 
   const reader = response.body!.getReader()
   const decoder = new TextDecoder()
+  let fullResponse = ''
 
   return sendStream(event, new ReadableStream({
     async start(controller) {
       while (true) {
         const { done, value } = await reader.read()
-        if (done) { controller.close(); break }
+        if (done) {
+          writeAuditLog(clientDomain, {
+            event_id: randomUUID(),
+            user_id: payload.userId,
+            client_id: payload.clientId,
+            action: 'chat',
+            model: 'qwen3:4b',
+            input: userMessage,
+            output: fullResponse,
+          }).catch(console.error)
+
+          controller.close()
+          break
+        }
 
         const chunk = decoder.decode(value)
         const lines = chunk.split('\n').filter(l => l.trim())
@@ -46,6 +67,7 @@ export default defineEventHandler(async (event) => {
           try {
             const data = JSON.parse(line)
             if (data.message?.content) {
+              fullResponse += data.message.content
               controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ content: data.message.content })}\n\n`))
             }
             if (data.done) {
