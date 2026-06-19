@@ -9,8 +9,20 @@ export default defineEventHandler((event) => {
 
   try {
     const payload = verifyToken(token)
-    return { userId: payload.userId, email: payload.email, role: payload.role, clientId: payload.clientId }
-  } catch {
+
+    const contextClientId = event.context.clientId
+    if (contextClientId && payload.clientId !== contextClientId) {
+      throw createError({ statusCode: 403, message: 'Access denied for this domain' })
+    }
+
+    return {
+      userId: payload.userId,
+      email: payload.email,
+      role: payload.role,
+      clientId: payload.clientId,
+    }
+  } catch (e: any) {
+    if (e.statusCode) throw e
     throw createError({ statusCode: 401, message: 'Invalid or expired token' })
   }
 })
