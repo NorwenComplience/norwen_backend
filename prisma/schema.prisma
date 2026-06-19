@@ -28,10 +28,11 @@ model User {
   email          String   @unique
   name           String?
   passwordHash   String
-  role           String   @default("user")
-  policySigned   Boolean  @default(false)
-  policySignedAt DateTime?
-  createdAt      DateTime @default(now())
+  role                String   @default("user")
+  mustChangePassword  Boolean  @default(false)
+  policySigned        Boolean  @default(false)
+  policySignedAt      DateTime?
+  createdAt           DateTime @default(now())
   
   client         Client   @relation(fields: [clientId], references: [id])
   documents      Document[]
