@@ -7,7 +7,7 @@
 
 <script setup lang="ts">
 definePageMeta({ layout: 'dashboard' })
-const { user } = useAuth()
+const user = useState<any>('auth_user')
 </script>
 
 <style scoped>

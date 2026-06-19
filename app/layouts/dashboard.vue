@@ -35,9 +35,7 @@
 </template>
 
 <script setup lang="ts">
-const { user, fetchUser, logout, hasRole } = useAuth()
-
-await fetchUser()
+const user = useState<any>('auth_user')
 
 const allMenuItems = [
   { label: 'Dashboard', to: '/dashboard', icon: '⊞', roles: ['user', 'admin', 'superadmin'] },
@@ -47,13 +45,19 @@ const allMenuItems = [
 ]
 
 const menuItems = computed(() =>
-  allMenuItems.filter(item => hasRole(...item.roles))
+  allMenuItems.filter(item => user.value && item.roles.includes(user.value.role))
 )
 
 const initials = computed(() => {
   const email = user.value?.email || ''
   return email.slice(0, 2).toUpperCase()
 })
+
+async function logout() {
+  await $fetch('/api/auth/logout', { method: 'POST' })
+  user.value = null
+  navigateTo('/login')
+}
 </script>
 
 <style scoped>
