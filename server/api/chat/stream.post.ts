@@ -61,7 +61,7 @@ export default defineEventHandler(async (event) => {
             model: 'qwen3-nothink',
             input: userMessage,
             output: fullResponse,
-          }).catch(console.error)
+          }).then(() => console.log('[audit] S3 write OK')).catch(e => console.error('[audit] S3 error:', e.message))
 
           controller.close()
           break
