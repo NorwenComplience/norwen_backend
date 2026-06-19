@@ -75,33 +75,31 @@ export default defineEventHandler(async (event) => {
         for (const line of lines) {
           try {
             const data = JSON.parse(line)
-            // Ignore thinking field entirely
-            if (data.message?.thinking) continue
+            // Skip chunks that carry thinking (separate field from content)
+            if (data.message?.thinking !== undefined && data.message.thinking !== '') continue
 
-            const content = data.message?.content
-            if (content) {
-              thinkBuffer += content
-              let visible = ''
-              while (true) {
-                if (inThink) {
-                  const end = thinkBuffer.indexOf('</think>')
-                  if (end === -1) break
-                  thinkBuffer = thinkBuffer.slice(end + 8)
-                  inThink = false
-                } else {
-                  const start = thinkBuffer.indexOf('<think>')
-                  if (start === -1) { visible += thinkBuffer; thinkBuffer = ''; break }
-                  visible += thinkBuffer.slice(0, start)
-                  thinkBuffer = thinkBuffer.slice(start + 7)
-                  inThink = true
-                }
+            const raw: string = data.message?.content ?? ''
+            if (!raw) continue
+
+            thinkBuffer += raw
+            let visible = ''
+            while (true) {
+              if (inThink) {
+                const end = thinkBuffer.indexOf('</think>')
+                if (end === -1) break
+                thinkBuffer = thinkBuffer.slice(end + 8)
+                inThink = false
+              } else {
+                const start = thinkBuffer.indexOf('<think>')
+                if (start === -1) { visible += thinkBuffer; thinkBuffer = ''; break }
+                visible += thinkBuffer.slice(0, start)
+                thinkBuffer = thinkBuffer.slice(start + 7)
+                inThink = true
               }
-              // Strip orphaned </think> that Ollama sends when thinking is in separate field
-              visible = visible.replace(/<\/think>/g, '').trimStart()
-              if (visible) {
-                fullResponse += visible
-                controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ content: visible })}\n\n`))
-              }
+            }
+            if (visible) {
+              fullResponse += visible
+              controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ content: visible })}\n\n`))
             }
             if (data.done) {
               controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'))
