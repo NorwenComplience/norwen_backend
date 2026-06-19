@@ -12,6 +12,7 @@
           @click="switchChat(chat.id)"
         >
           <span class="chat-item-title">{{ chat.title }}</span>
+          <span v-if="streamingMap[chat.id]" class="chat-thinking">●</span>
           <button class="chat-delete" @click.stop="deleteChat(chat.id)">×</button>
         </div>
         <div v-if="!chats.length" class="chat-empty-list">No chats yet</div>
@@ -79,10 +80,13 @@ const chats = useLocalStorage<Chat[]>(STORAGE_KEY, [])
 const activeChatId = useLocalStorage<string>(ACTIVE_KEY, '')
 
 const input = ref('')
-const streaming = ref(false)
-const streamingText = ref('')
+const streamingMap = reactive<Record<string, boolean>>({})
+const streamingTextMap = reactive<Record<string, string>>({})
 const messagesEl = ref<HTMLElement>()
 const inputEl = ref<HTMLTextAreaElement>()
+
+const streaming = computed(() => !!streamingMap[activeChatId.value])
+const streamingText = computed(() => streamingTextMap[activeChatId.value] || '')
 
 const activeMessages = computed(() => {
   return chats.value.find(c => c.id === activeChatId.value)?.messages || []
@@ -144,8 +148,9 @@ async function send() {
   if (inputEl.value) inputEl.value.style.height = 'auto'
   scrollBottom()
 
-  streaming.value = true
-  streamingText.value = ''
+  const chatId = chat.id
+  streamingMap[chatId] = true
+  streamingTextMap[chatId] = ''
 
   try {
     const response = await fetch('/api/chat/stream', {
@@ -169,16 +174,16 @@ async function send() {
         if (data === '[DONE]') continue
         try {
           const parsed = JSON.parse(data)
-          streamingText.value += parsed.content
-          scrollBottom()
+          streamingTextMap[chatId] = (streamingTextMap[chatId] || '') + parsed.content
+          if (chatId === activeChatId.value) scrollBottom()
         } catch {}
       }
     }
 
-    chat.messages.push({ role: 'assistant', content: streamingText.value })
+    chat.messages.push({ role: 'assistant', content: streamingTextMap[chatId] || '' })
   } finally {
-    streaming.value = false
-    streamingText.value = ''
+    streamingMap[chatId] = false
+    streamingTextMap[chatId] = ''
     scrollBottom()
   }
 }
@@ -261,6 +266,13 @@ async function send() {
 }
 .chat-item:hover .chat-delete { opacity: 1; }
 .chat-delete:hover { color: #ef4444; }
+
+.chat-thinking {
+  font-size: 10px;
+  color: #4f46e5;
+  animation: blink .7s steps(1) infinite;
+  flex-shrink: 0;
+}
 
 .chat-empty-list {
   font-size: 12px;
