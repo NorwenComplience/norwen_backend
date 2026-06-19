@@ -19,13 +19,19 @@ export default defineEventHandler(async (event) => {
   const clientDomain = event.context.clientDomain || 'demo'
   const userMessage = messages[messages.length - 1]?.content || ''
 
+  const systemMessage = {
+    role: 'system',
+    content: 'You are a helpful AI assistant for EU AI Act compliance. Answer in the language the user writes in. Be concise and practical.',
+  }
+
   const response = await fetch(`${OLLAMA_URL}/api/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model: 'qwen3:4b',
-      messages,
+      messages: [systemMessage, ...messages],
       stream: true,
+      think: false,
     }),
   })
 
