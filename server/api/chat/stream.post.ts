@@ -46,6 +46,30 @@ export default defineEventHandler(async (event) => {
   const reader = response.body!.getReader()
   const decoder = new TextDecoder()
   let fullResponse = ''
+  let thinkBuffer = ''
+  let inThink = false
+
+  function filterThinking(text: string): string {
+    let result = ''
+    let buf = thinkBuffer + text
+    thinkBuffer = ''
+
+    while (buf.length > 0) {
+      if (inThink) {
+        const end = buf.indexOf('</think>')
+        if (end === -1) { thinkBuffer = buf; break }
+        inThink = false
+        buf = buf.slice(end + 8)
+      } else {
+        const start = buf.indexOf('<think>')
+        if (start === -1) { result += buf; break }
+        result += buf.slice(0, start)
+        inThink = true
+        buf = buf.slice(start + 7)
+      }
+    }
+    return result
+  }
 
   return sendStream(event, new ReadableStream({
     async start(controller) {
@@ -73,8 +97,11 @@ export default defineEventHandler(async (event) => {
           try {
             const data = JSON.parse(line)
             if (data.message?.content) {
-              fullResponse += data.message.content
-              controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ content: data.message.content })}\n\n`))
+              const filtered = filterThinking(data.message.content)
+              fullResponse += filtered
+              if (filtered) {
+                controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ content: filtered })}\n\n`))
+              }
             }
             if (data.done) {
               controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'))
