@@ -3,8 +3,6 @@ import { writeAuditLog } from '../../utils/s3'
 import { randomUUID } from 'crypto'
 
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434'
-const SYSTEM_PROMPT = 'You are a helpful AI assistant for EU AI Act compliance. Answer in the language the user writes in. Be concise and practical.'
-
 export default defineEventHandler(async (event) => {
   const token = getCookie(event, 'auth_token')
   if (!token) throw createError({ statusCode: 401, message: 'Not authenticated' })
@@ -20,10 +18,7 @@ export default defineEventHandler(async (event) => {
   const clientDomain = event.context.clientDomain || 'demo'
   const userMessage = messages[messages.length - 1]?.content || ''
 
-  const ollamaMessages = [
-    { role: 'system', content: SYSTEM_PROMPT },
-    ...messages,
-  ]
+  const ollamaMessages = [...messages]
 
   const response = await fetch(`${OLLAMA_URL}/api/chat`, {
     method: 'POST',
