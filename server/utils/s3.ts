@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
+import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3'
 
 const s3 = new S3Client({
   endpoint: process.env.S3_ENDPOINT,
@@ -17,10 +17,17 @@ export async function writeAuditLog(clientDomain: string, entry: object) {
   const key = `${clientDomain}/logs/${date}.jsonl`
   const line = JSON.stringify({ ...entry, timestamp: new Date().toISOString() }) + '\n'
 
+  // Read existing content and append
+  let existing = ''
+  try {
+    const obj = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: key }))
+    existing = await obj.Body!.transformToString()
+  } catch {}
+
   await s3.send(new PutObjectCommand({
     Bucket: BUCKET,
     Key: key,
-    Body: line,
+    Body: existing + line,
     ContentType: 'application/x-ndjson',
   }))
 }
