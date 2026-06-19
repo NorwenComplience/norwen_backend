@@ -3,6 +3,16 @@ import { writeAuditLog } from '../../utils/s3'
 import { randomUUID } from 'crypto'
 
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434'
+const SYSTEM_PROMPT = 'You are a helpful AI assistant for EU AI Act compliance. Answer in the language the user writes in. Be concise and practical.'
+
+function buildPrompt(messages: { role: string; content: string }[]): string {
+  let prompt = `<|im_start|>system\n${SYSTEM_PROMPT}<|im_end|>\n`
+  for (const msg of messages) {
+    prompt += `<|im_start|>${msg.role}\n${msg.content}<|im_end|>\n`
+  }
+  prompt += `<|im_start|>assistant\n<think>\n\n</think>\n`
+  return prompt
+}
 
 export default defineEventHandler(async (event) => {
   const token = getCookie(event, 'auth_token')
@@ -19,19 +29,14 @@ export default defineEventHandler(async (event) => {
   const clientDomain = event.context.clientDomain || 'demo'
   const userMessage = messages[messages.length - 1]?.content || ''
 
-  const systemMessage = {
-    role: 'system',
-    content: 'You are a helpful AI assistant for EU AI Act compliance. Answer in the language the user writes in. Be concise and practical.',
-  }
-
-  const response = await fetch(`${OLLAMA_URL}/api/chat`, {
+  const response = await fetch(`${OLLAMA_URL}/api/generate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'qwen3-nothink',
-      messages: [systemMessage, ...messages],
+      model: 'qwen3:4b',
+      prompt: buildPrompt(messages),
       stream: true,
-      think: false,
+      raw: true,
     }),
   })
 
@@ -46,30 +51,6 @@ export default defineEventHandler(async (event) => {
   const reader = response.body!.getReader()
   const decoder = new TextDecoder()
   let fullResponse = ''
-  let thinkBuffer = ''
-  let inThink = false
-
-  function filterThinking(text: string): string {
-    let result = ''
-    let buf = thinkBuffer + text
-    thinkBuffer = ''
-
-    while (buf.length > 0) {
-      if (inThink) {
-        const end = buf.indexOf('</think>')
-        if (end === -1) { thinkBuffer = buf; break }
-        inThink = false
-        buf = buf.slice(end + 8)
-      } else {
-        const start = buf.indexOf('<think>')
-        if (start === -1) { result += buf; break }
-        result += buf.slice(0, start)
-        inThink = true
-        buf = buf.slice(start + 7)
-      }
-    }
-    return result
-  }
 
   return sendStream(event, new ReadableStream({
     async start(controller) {
@@ -81,7 +62,7 @@ export default defineEventHandler(async (event) => {
             user_id: payload.userId,
             client_id: payload.clientId,
             action: 'chat',
-            model: 'qwen3-nothink',
+            model: 'qwen3:4b',
             input: userMessage,
             output: fullResponse,
           }).catch(console.error)
@@ -96,12 +77,9 @@ export default defineEventHandler(async (event) => {
         for (const line of lines) {
           try {
             const data = JSON.parse(line)
-            if (data.message?.content) {
-              const filtered = filterThinking(data.message.content)
-              fullResponse += filtered
-              if (filtered) {
-                controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ content: filtered })}\n\n`))
-              }
+            if (data.response) {
+              fullResponse += data.response
+              controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ content: data.response })}\n\n`))
             }
             if (data.done) {
               controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'))
