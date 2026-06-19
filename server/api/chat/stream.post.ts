@@ -21,14 +21,14 @@ export default defineEventHandler(async (event) => {
 
   const systemMessage = {
     role: 'system',
-    content: 'You are a helpful AI assistant for EU AI Act compliance. Answer in the language the user writes in. Be concise and practical. /no_think',
+    content: 'You are a helpful AI assistant for EU AI Act compliance. Answer in the language the user writes in. Be concise and practical.',
   }
 
   const response = await fetch(`${OLLAMA_URL}/api/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'qwen3:4b',
+      model: 'mistral:7b',
       messages: [systemMessage, ...messages],
       stream: true,
       think: false,
@@ -81,7 +81,7 @@ export default defineEventHandler(async (event) => {
             user_id: payload.userId,
             client_id: payload.clientId,
             action: 'chat',
-            model: 'qwen3:4b',
+            model: 'mistral:7b',
             input: userMessage,
             output: fullResponse,
           }).catch(console.error)
