@@ -1,13 +1,15 @@
 <template>
   <div>
-    <h1 class="page-title">Dashboard</h1>
-    <p class="page-sub">Welcome back, {{ user?.email }}</p>
+    <h1 class="page-title">Admin</h1>
+    <p class="page-sub">Coming soon</p>
   </div>
 </template>
 
 <script setup lang="ts">
 definePageMeta({ layout: 'dashboard' })
-const { user } = useAuth()
+
+const { hasRole } = useAuth()
+if (!hasRole('admin', 'superadmin')) navigateTo('/dashboard')
 </script>
 
 <style scoped>
