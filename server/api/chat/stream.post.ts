@@ -28,7 +28,7 @@ export default defineEventHandler(async (event) => {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'qwen3:4b',
+      model: 'qwen3-nothink',
       messages: [systemMessage, ...messages],
       stream: true,
       think: false,
@@ -81,7 +81,7 @@ export default defineEventHandler(async (event) => {
             user_id: payload.userId,
             client_id: payload.clientId,
             action: 'chat',
-            model: 'qwen3:4b',
+            model: 'qwen3-nothink',
             input: userMessage,
             output: fullResponse,
           }).catch(console.error)
