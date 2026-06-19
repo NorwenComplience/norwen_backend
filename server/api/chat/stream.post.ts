@@ -48,7 +48,7 @@ export default defineEventHandler(async (event) => {
   const decoder = new TextDecoder()
   let fullResponse = ''
   let thinkBuffer = ''
-  let inThink = false
+  let thinkDone = false
 
   return sendStream(event, new ReadableStream({
     async start(controller) {
@@ -75,31 +75,26 @@ export default defineEventHandler(async (event) => {
         for (const line of lines) {
           try {
             const data = JSON.parse(line)
-            // Skip chunks that carry thinking (separate field from content)
-            if (data.message?.thinking !== undefined && data.message.thinking !== '') continue
-
             const raw: string = data.message?.content ?? ''
             if (!raw) continue
 
-            thinkBuffer += raw
-            let visible = ''
-            while (true) {
-              if (inThink) {
-                const end = thinkBuffer.indexOf('</think>')
-                if (end === -1) break
-                thinkBuffer = thinkBuffer.slice(end + 8)
-                inThink = false
-              } else {
-                const start = thinkBuffer.indexOf('<think>')
-                if (start === -1) { visible += thinkBuffer; thinkBuffer = ''; break }
-                visible += thinkBuffer.slice(0, start)
-                thinkBuffer = thinkBuffer.slice(start + 7)
-                inThink = true
+            if (thinkDone) {
+              // Thinking already stripped — stream directly
+              fullResponse += raw
+              controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ content: raw })}\n\n`))
+            } else {
+              // Buffer until </think> appears (no opening tag — it's in the prompt template)
+              thinkBuffer += raw
+              const end = thinkBuffer.indexOf('</think>')
+              if (end !== -1) {
+                thinkDone = true
+                const after = thinkBuffer.slice(end + 8).replace(/^\n+/, '')
+                thinkBuffer = ''
+                if (after) {
+                  fullResponse += after
+                  controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ content: after })}\n\n`))
+                }
               }
-            }
-            if (visible) {
-              fullResponse += visible
-              controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ content: visible })}\n\n`))
             }
             if (data.done) {
               controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'))
