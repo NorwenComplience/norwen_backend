@@ -10,4 +10,8 @@ export default defineNuxtRouteMiddleware(async (to) => {
     user.value = null
     return navigateTo('/login')
   }
+
+  if (user.value?.mustChangePassword && to.path !== '/change-password') {
+    return navigateTo('/change-password')
+  }
 })

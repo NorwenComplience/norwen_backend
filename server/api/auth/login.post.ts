@@ -20,6 +20,7 @@ export default defineEventHandler(async (event) => {
     email: user.email,
     role: user.role,
     clientId: user.clientId,
+    mustChangePassword: user.mustChangePassword,
   })
 
   setCookie(event, 'auth_token', token, {

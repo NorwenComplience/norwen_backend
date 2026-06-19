@@ -20,6 +20,7 @@ export default defineEventHandler((event) => {
       email: payload.email,
       role: payload.role,
       clientId: payload.clientId,
+      mustChangePassword: payload.mustChangePassword ?? false,
     }
   } catch (e: any) {
     if (e.statusCode) throw e
