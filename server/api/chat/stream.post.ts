@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
 
   const systemMessage = {
     role: 'system',
-    content: 'You are a helpful AI assistant for EU AI Act compliance. Answer in the language the user writes in. Be concise and practical.',
+    content: 'You are a helpful AI assistant for EU AI Act compliance. Answer in the language the user writes in. Be concise and practical. /no_think',
   }
 
   const response = await fetch(`${OLLAMA_URL}/api/chat`, {
