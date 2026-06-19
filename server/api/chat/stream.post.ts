@@ -47,6 +47,8 @@ export default defineEventHandler(async (event) => {
   const reader = response.body!.getReader()
   const decoder = new TextDecoder()
   let fullResponse = ''
+  let thinkBuffer = ''
+  let inThink = false
 
   return sendStream(event, new ReadableStream({
     async start(controller) {
@@ -75,8 +77,26 @@ export default defineEventHandler(async (event) => {
             const data = JSON.parse(line)
             const content = data.message?.content
             if (content) {
-              fullResponse += content
-              controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ content })}\n\n`))
+              thinkBuffer += content
+              let visible = ''
+              while (true) {
+                if (inThink) {
+                  const end = thinkBuffer.indexOf('</think>')
+                  if (end === -1) break
+                  thinkBuffer = thinkBuffer.slice(end + 8)
+                  inThink = false
+                } else {
+                  const start = thinkBuffer.indexOf('<think>')
+                  if (start === -1) { visible += thinkBuffer; thinkBuffer = ''; break }
+                  visible += thinkBuffer.slice(0, start)
+                  thinkBuffer = thinkBuffer.slice(start + 7)
+                  inThink = true
+                }
+              }
+              if (visible) {
+                fullResponse += visible
+                controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ content: visible })}\n\n`))
+              }
             }
             if (data.done) {
               controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'))
