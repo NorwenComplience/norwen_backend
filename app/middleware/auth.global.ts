@@ -4,7 +4,8 @@ export default defineNuxtRouteMiddleware(async (to) => {
   const user = useState<any>('auth_user')
 
   try {
-    user.value = await $fetch('/api/auth/me')
+    const headers = useRequestHeaders(['cookie'])
+    user.value = await $fetch('/api/auth/me', { headers })
   } catch {
     user.value = null
     return navigateTo('/login')
